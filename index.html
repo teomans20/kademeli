@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kademeli">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#07070C">
+<title>Kademeli Alım</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%23111118'/><text x='50' y='70' font-size='55' font-weight='800' text-anchor='middle' fill='%239B7FFF'>K</text></svg>">
+<script>
+const manifest = {
+  name: "Kademeli Alım", short_name: "Kademeli",
+  start_url: ".", display: "standalone",
+  background_color: "#07070C", theme_color: "#07070C",
+  icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#111118"/><text x="256" y="340" font-size="280" font-weight="800" text-anchor="middle" fill="#9B7FFF" font-family="system-ui">K</text></svg>'), sizes: "512x512", type: "image/svg+xml" }]
+};
+const b = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+const l = document.createElement("link"); l.rel = "manifest"; l.href = URL.createObjectURL(b);
+document.head.appendChild(l);
+</script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #07070C; --card: #0F0F18; --card-hover: #141420; --card-alt: #181824;
+    --border: #1E1E30; --border-light: #2A2A40;
+    --text: #EEEEF4; --text-sec: #B0B0C8; --muted: #6E6E90;
+    --green: #00E676; --green-soft: rgba(0,230,118,0.10); --green-glow: rgba(0,230,118,0.25);
+    --red: #FF5252; --red-soft: rgba(255,82,82,0.10); --red-glow: rgba(255,82,82,0.25);
+    --accent: #9B7FFF; --accent-soft: rgba(155,127,255,0.12); --accent-glow: rgba(155,127,255,0.30);
+    --gradient: linear-gradient(135deg, #9B7FFF 0%, #6C4FE0 50%, #5B3FDD 100%);
+    --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; overscroll-behavior: none; min-height: 100dvh; }
+  input, select, button { font-family: inherit; }
+  input::placeholder { color: var(--muted); opacity: 0.6; }
+  input:focus { border-color: var(--accent) !important; outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .header { padding: calc(var(--safe-top) + 16px) 20px 14px; display: flex; align-items: center; gap: 14px; background: linear-gradient(180deg, rgba(15,15,24,0.98), rgba(7,7,12,0.95)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+  .logo { width: 40px; height: 40px; border-radius: 12px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #fff; box-shadow: 0 4px 16px var(--accent-glow); }
+  .header-title { font-weight: 800; font-size: 18px; letter-spacing: -0.3px; }
+  .header-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: 0.5px; }
+  .container { padding: 16px 16px calc(var(--safe-bottom) + 32px); max-width: 520px; margin: 0 auto; }
+  .label { font-size: 10px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+  .input { background: var(--card-alt); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); padding: 11px 14px; font-size: 14px; width: 100%; transition: all 0.2s; font-variant-numeric: tabular-nums; }
+  .input-big { font-size: 24px; font-weight: 800; padding: 14px 16px; border-color: var(--accent); background: linear-gradient(135deg, rgba(155,127,255,0.06), rgba(91,63,221,0.03)); letter-spacing: -0.5px; }
+  .input-sm { padding: 9px 11px; font-size: 13px; border-radius: 10px; }
+  .card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .card-pad { padding: 18px; }
+  .card-glass { background: linear-gradient(135deg, rgba(15,15,24,0.9), rgba(24,24,36,0.7)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .row-header { display: flex; padding: 10px 16px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+  .kademe-row { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); gap: 8px; transition: background 0.15s; }
+  .kademe-row:last-of-type { border-bottom: none; }
+  .kademe-row:active { background: var(--card-hover); }
+  .kademe-num { flex: 0 0 28px; font-size: 11px; font-weight: 800; color: var(--accent); opacity: 0.7; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; }
+  .kademe-input-wrap { flex: 1; position: relative; }
+  .kademe-pnl { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 700; }
+  .kademe-adet { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--muted); font-weight: 600; }
+  .btn-add { width: 100%; padding: 13px; background: var(--accent-soft); border: none; color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; border-top: 1px solid var(--border); transition: background 0.2s; }
+  .btn-add:active { background: rgba(155,127,255,0.2); }
+  .btn-remove { width: 30px; height: 30px; border-radius: 10px; border: none; background: var(--red-soft); color: var(--red); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.15s; }
+  .btn-remove:active { transform: scale(0.9); }
+  .btn-remove:disabled { background: transparent; color: transparent; cursor: default; }
+  .btn-fetch { background: var(--gradient); border: none; border-radius: 12px; color: #fff; padding: 11px 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; height: 44px; display: flex; align-items: center; gap: 7px; box-shadow: 0 4px 14px var(--accent-glow); transition: all 0.2s; }
+  .btn-fetch:active { transform: scale(0.97); box-shadow: 0 2px 8px var(--accent-glow); }
+  .btn-fetch:disabled { background: var(--card-alt); box-shadow: none; cursor: wait; opacity: 0.7; }
+  .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px; font-weight: 600; }
+  .stat-big { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .stat-med { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pnl-box { border-radius: 14px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; margin-top: 18px; position: relative; overflow: hidden; }
+  .pnl-box::before { content: ''; position: absolute; inset: 0; background: inherit; filter: blur(40px); opacity: 0.3; z-index: 0; }
+  .pnl-box > * { position: relative; z-index: 1; }
+  .pnl-amount { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .pnl-pct { font-size: 18px; font-weight: 800; padding: 7px 14px; border-radius: 12px; font-variant-numeric: tabular-nums; }
+  .price-card { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; }
+  .price-name { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+  .price-big { font-size: 32px; font-weight: 900; margin-top: 4px; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .price-change { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .price-change-pct { font-size: 13px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .price-time { font-size: 10px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+  .price-badge { display: inline-block; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); margin-left: 8px; }
+  .chart-wrap { position: relative; height: 260px; margin-left: 52px; margin-right: 12px; }
+  .chart-grid-line { position: absolute; left: -52px; right: 0; }
+  .chart-grid-label { position: absolute; left: 0; top: -7px; font-size: 9px; color: var(--muted); width: 44px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .chart-grid-rule { margin-left: 48px; height: 1px; background: var(--border); opacity: 0.3; }
+  .chart-cur-line { height: 2px; background: linear-gradient(90deg, var(--accent), transparent 85%); }
+  .chart-cur-label { position: absolute; right: 0; top: -10px; font-size: 10px; font-weight: 800; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 8px var(--accent-glow); }
+  .chart-avg-line { height: 2px; background-image: repeating-linear-gradient(90deg, var(--muted) 0 5px, transparent 5px 10px); opacity: 0.5; }
+  .chart-avg-label { position: absolute; left: 0; top: -10px; font-size: 9px; font-weight: 700; color: var(--text-sec); background: var(--card-alt); padding: 3px 7px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  .buy-marker { position: absolute; left: 0; right: 0; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; z-index: 4; }
+  .buy-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .buy-bar { height: 5px; border-radius: 3px; }
+  .buy-label { font-size: 9px; font-weight: 700; color: var(--text-sec); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); flex-wrap: wrap; font-weight: 500; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .detail-header { padding: 12px 18px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .error-msg { font-size: 12px; color: var(--red); margin-bottom: 10px; padding: 10px 14px; background: var(--red-soft); border-radius: 12px; border: 1px solid rgba(255,82,82,0.15); font-weight: 500; }
+  @media (max-width: 380px) { .price-big { font-size: 26px; } .pnl-amount { font-size: 22px; } .pnl-pct { font-size: 15px; padding: 6px 10px; } .stat-big { font-size: 18px; } .container { padding: 12px 12px calc(var(--safe-bottom) + 24px); } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">K</div>
+  <div>
+    <div class="header-title">Kademeli Alım</div>
+    <div class="header-sub">NASDAQ · ~15dk Gecikmeli</div>
+  </div>
+</div>
+<div class="container" id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+const fmt = (n, d = 2) => n == null || isNaN(n) ? "—" : n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pctFmt = (n) => n == null || isNaN(n) ? "—" : (n >= 0 ? "+" : "") + fmt(n) + "%";
+
+const STORAGE_KEY = "kademeli_v1";
+const loadState = () => { try { const d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : null; } catch { return null; } };
+const saveState = (s) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {} };
+
+function App() {
+  const saved = useRef(loadState());
+  const [ticker, setTicker] = useState(saved.current?.ticker || "NVDA");
+  const [currentPrice, setCurrentPrice] = useState(saved.current?.currentPrice || "");
+  const [rows, setRows] = useState(saved.current?.rows || [{ price: "", amount: "", id: 1 }]);
+  const [nextId, setNextId] = useState(saved.current?.nextId || 2);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [lastFetch, setLastFetch] = useState(saved.current?.lastFetch || null);
+
+  // Auto-save on every change
+  useEffect(() => {
+    saveState({ ticker, currentPrice, rows, nextId, lastFetch });
+  }, [ticker, currentPrice, rows, nextId, lastFetch]);
+
+  const applyPrice = (price, name, change, changePct) => {
+    setCurrentPrice(String(price));
+    setLastFetch({ name: name || ticker, price, change: change ?? null, changePct: changePct ?? null, time: new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) });
+  };
+
+  const fetchViaYahoo = async (sym) => {
+    const res = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + sym + "?interval=1d&range=1d");
+    if (!res.ok) throw new Error("Yahoo " + res.status);
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta?.regularMarketPrice) throw new Error("no price");
+    return { price: meta.regularMarketPrice, name: meta.shortName || meta.symbol || sym, prev: meta.chartPreviousClose || meta.previousClose };
+  };
+
+  const fetchViaClaude = async (sym) => {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400,
+        system: "Return ONLY valid JSON. No markdown, no backticks. Search the web and respond: " + JSON.stringify({price: "NUMBER", name: "STRING", change: "NUMBER", changePct: "NUMBER"}),
+        messages: [{ role: "user", content: "Stock price of " + sym + " right now" }],
+        tools: [{ type: "web_search_20250305", name: "web_search" }] }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error?.message || "API error");
+    const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join(" ");
+    const m = txt.replace(/```json|```/g, "").match(/\{[^{}]*"price"\s*:\s*[\d.]+[^{}]*\}/);
+    if (!m) throw new Error("parse fail");
+    return JSON.parse(m[0]);
+  };
+
+  const fetchPrice = useCallback(async () => {
+    if (!ticker.trim()) return;
+    setLoading(true); setError("");
+    const sym = ticker.trim();
+    try { const yf = await fetchViaYahoo(sym); const ch = yf.prev ? yf.price - yf.prev : null; applyPrice(yf.price, yf.name, ch, yf.prev ? (ch / yf.prev) * 100 : null); setLoading(false); return; } catch (e) { console.log("Yahoo:", e.message); }
+    try { const cp = await fetchViaClaude(sym); if (!cp.price) setError('"' + sym + '" bulunamadı'); else applyPrice(cp.price, cp.name, cp.change, cp.changePct); } catch (e) { console.error(e); setError("Fiyat alınamadı — manuel girebilirsin"); }
+    setLoading(false);
+  }, [ticker]);
+
+  const addRow = () => { setRows(r => [...r, { price: "", amount: "", id: nextId }]); setNextId(n => n + 1); };
+  const removeRow = (id) => setRows(r => r.filter(x => x.id !== id));
+  const updateRow = (id, field, val) => setRows(r => r.map(x => x.id === id ? { ...x, [field]: val } : x));
+
+  const parsed = useMemo(() => rows.map(r => { const p = parseFloat(r.price.replace(",", ".")); const amt = parseFloat(r.amount.replace(",", ".")); return { ...r, p, amt, l: p > 0 && amt > 0 ? amt / p : 0 }; }).filter(r => r.p > 0 && r.l > 0), [rows]);
+  const cp = parseFloat((currentPrice || "").replace(",", "."));
+  const stats = useMemo(() => { if (!parsed.length) return null; const tl = parsed.reduce((s, r) => s + r.l, 0); const tc = parsed.reduce((s, r) => s + r.amt, 0); const avg = tc / tl; const cv = cp > 0 ? tl * cp : null; const pnl = cv != null ? cv - tc : null; return { totalLot: tl, totalCost: tc, avg, curVal: cv, pnl, pnlPct: pnl != null ? (pnl / tc) * 100 : null }; }, [parsed, cp]);
+  const isProfit = stats && stats.pnl != null && stats.pnl >= 0;
+  const plColor = stats?.pnl != null ? (isProfit ? "var(--green)" : "var(--red)") : "var(--muted)";
+  const plBg = stats?.pnl != null ? (isProfit ? "var(--green-soft)" : "var(--red-soft)") : "transparent";
+  const chartData = useMemo(() => { if (!parsed.length) return null; const ps = parsed.map(r => r.p); if (cp > 0) ps.push(cp); if (stats) ps.push(stats.avg); const mn = Math.min(...ps), mx = Math.max(...ps), pd = (mx - mn) * 0.18 || mx * 0.05; return { min: mn - pd, max: mx + pd, range: mx - mn + 2 * pd }; }, [parsed, cp, stats]);
+  const getY = (price) => chartData ? 100 - ((price - chartData.min) / chartData.range) * 100 : 0;
+
+  return (<>
+    <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+      <div style={{ flex: 1 }}>
+        <label className="label">Hisse Kodu</label>
+        <input className="input" value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} placeholder="NVDA" onKeyDown={e => e.key === "Enter" && fetchPrice()} />
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end" }}>
+        <button className="btn-fetch" onClick={fetchPrice} disabled={loading}>
+          {loading ? <span className="spinner" /> : "⟳"} {loading ? "Aranıyor..." : "Fiyat Getir"}
+        </button>
+      </div>
+    </div>
+    {error && <div className="error-msg slide-up">{error}</div>}
+    {lastFetch && (<div className="card card-glass slide-up"><div className="price-card"><div><div className="price-name">{lastFetch.name}<span className="price-badge">NASDAQ</span></div><div className="price-big">${fmt(lastFetch.price)}</div></div><div style={{ textAlign: "right" }}>{lastFetch.change != null && <div className="price-change" style={{ color: lastFetch.change >= 0 ? "var(--green)" : "var(--red)" }}>{lastFetch.change >= 0 ? "+" : ""}{fmt(lastFetch.change)}</div>}{lastFetch.changePct != null && <div className="price-change-pct" style={{ color: lastFetch.change >= 0 ? "var(--green)" : "var(--red)" }}>{pctFmt(lastFetch.changePct)}</div>}<div className="price-time">{lastFetch.time}</div></div></div></div>)}
+    <div style={{ marginBottom: 14 }}><label className="label">Güncel Fiyat</label><input className="input input-big" value={currentPrice} onChange={e => setCurrentPrice(e.target.value)} placeholder="0.00" inputMode="decimal" /></div>
+    <div className="card">
+      <div className="row-header"><span style={{ flex: "0 0 36px" }}></span><span style={{ flex: 1 }}>Fiyat ($)</span><span style={{ flex: 1 }}>Miktar ($)</span><span style={{ width: 30 }}></span></div>
+      {rows.map((r, i) => { const p = parseFloat(r.price.replace(",", ".")); const rowPnl = cp > 0 && p > 0 ? ((cp - p) / p) * 100 : null; const rowColor = rowPnl != null ? (rowPnl >= 0 ? "var(--green)" : "var(--red)") : "var(--muted)"; const a2 = parseFloat(r.amount.replace(",", ".")); const ca = p > 0 && a2 > 0 ? a2 / p : null; return (
+        <div key={r.id} className="kademe-row"><span className="kademe-num">{i + 1}</span><div className="kademe-input-wrap"><input className="input input-sm" value={r.price} onChange={e => updateRow(r.id, "price", e.target.value)} placeholder="Fiyat" inputMode="decimal" />{rowPnl != null && <span className="kademe-pnl" style={{ color: rowColor }}>{pctFmt(rowPnl)}</span>}</div><div className="kademe-input-wrap"><input className="input input-sm" value={r.amount} onChange={e => updateRow(r.id, "amount", e.target.value)} placeholder="500" inputMode="decimal" />{ca != null && <span className="kademe-adet">{fmt(ca, 1)} ad</span>}</div><button className="btn-remove" onClick={() => removeRow(r.id)} disabled={rows.length <= 1}>&times;</button></div>); })}
+      <button className="btn-add" onClick={addRow}>+ Kademe Ekle</button>
+    </div>
+    {stats && (<div className="card card-pad slide-up"><div className="grid-2"><div><div className="stat-label">Ort. Maliyet</div><div className="stat-big">${fmt(stats.avg)}</div></div><div><div className="stat-label">Toplam Adet</div><div className="stat-big">{fmt(stats.totalLot, 2)}</div></div><div><div className="stat-label">Toplam Yatırım</div><div className="stat-med">${fmt(stats.totalCost)}</div></div>{stats.curVal != null && <div><div className="stat-label">Güncel Değer</div><div className="stat-med">${fmt(stats.curVal)}</div></div>}</div>{stats.pnl != null && (<div className="pnl-box" style={{ background: plBg }}><div><div className="stat-label">Kâr / Zarar</div><div className="pnl-amount" style={{ color: plColor }}>{stats.pnl >= 0 ? "+" : ""}${fmt(Math.abs(stats.pnl))}</div></div><div className="pnl-pct" style={{ color: plColor, background: isProfit ? "rgba(0,230,118,0.06)" : "rgba(255,82,82,0.06)" }}>{pctFmt(stats.pnlPct)}</div></div>)}</div>)}
+    {chartData && parsed.length > 0 && (<div className="card card-pad"><div className="label" style={{ marginBottom: 14 }}>{"Alım Seviyeleri — " + ticker}</div><div className="chart-wrap">{[0,25,50,75,100].map(pctY => { const price = chartData.max - (pctY / 100) * chartData.range; return (<div key={pctY} className="chart-grid-line" style={{ top: pctY + "%" }}><span className="chart-grid-label">{fmt(price)}</span><div className="chart-grid-rule" /></div>); })}{cp > 0 && (<div style={{ position: "absolute", top: getY(cp) + "%", left: -4, right: 0, zIndex: 3 }}><div className="chart-cur-line" /><span className="chart-cur-label">${fmt(cp)}</span></div>)}{stats && (<div style={{ position: "absolute", top: getY(stats.avg) + "%", left: -4, right: 0, zIndex: 2 }}><div className="chart-avg-line" /><span className="chart-avg-label">{"ORT $" + fmt(stats.avg)}</span></div>)}{parsed.map(r => { const y = getY(r.p); const mxA = Math.max(...parsed.map(x => x.amt)); const barW = (r.amt / mxA) * 65 + 20; const rPnl = cp > 0 ? ((cp - r.p) / r.p) * 100 : null; const dc = rPnl != null ? (rPnl >= 0 ? "var(--green)" : "var(--red)") : "var(--accent)"; const dr = rPnl != null ? (rPnl >= 0 ? "#00E676" : "#FF5252") : "#9B7FFF"; return (<div key={r.id} className="buy-marker" style={{ top: y + "%" }}><div className="buy-dot" style={{ background: dc, boxShadow: "0 0 10px " + dr + "60" }} /><div className="buy-bar" style={{ width: barW + "%", background: "linear-gradient(90deg, " + dr + "50, " + dr + "08)" }} /><span className="buy-label">{"$" + fmt(r.amt, 0) + " → " + fmt(r.l, 1) + " ad"}</span></div>); })}</div><div className="legend"><span className="legend-item"><span style={{ width: 12, height: 2, background: "var(--accent)", display: "inline-block", borderRadius: 1 }} /> {"Güncel"}</span><span className="legend-item"><span style={{ width: 12, height: 2, display: "inline-block", backgroundImage: "repeating-linear-gradient(90deg, var(--muted) 0 3px, transparent 3px 6px)" }} /> Ortalama</span><span className="legend-item"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", display: "inline-block", boxShadow: "0 0 6px var(--green-glow)" }} /> {"Kârda"}</span><span className="legend-item"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--red)", display: "inline-block", boxShadow: "0 0 6px var(--red-glow)" }} /> Zararda</span></div></div>)}
+    {stats && cp > 0 && parsed.length > 1 && (<div className="card slide-up"><div className="detail-header">Kademe Detay</div>{parsed.map(r => { const cost = r.amt, val = cp * r.l, pnl = val - cost, pnlP = (pnl / cost) * 100; const c = pnl >= 0 ? "var(--green)" : "var(--red)"; return (<div key={r.id} className="detail-row"><div><span style={{ fontSize: 13, fontWeight: 700 }}>{"$" + fmt(r.amt, 0)}</span><span style={{ fontSize: 12, color: "var(--text-sec)", marginLeft: 6 }}>{"@ $" + fmt(r.p)}</span><span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 6 }}>{"(" + fmt(r.l, 2) + " ad)"}</span></div><div style={{ textAlign: "right" }}><span style={{ fontSize: 13, fontWeight: 800, color: c, fontVariantNumeric: "tabular-nums" }}>{(pnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(pnl))}</span><span style={{ fontSize: 11, fontWeight: 700, color: c, marginLeft: 6 }}>{pctFmt(pnlP)}</span></div></div>); })}</div>)}
+    <div style={{ textAlign: "center", padding: "24px 0 8px" }}>
+      <button onClick={() => { if (confirm("Tüm kademeleri sıfırla?")) { setTicker("NVDA"); setCurrentPrice(""); setRows([{price:"",amount:"",id:1}]); setNextId(2); setLastFetch(null); setError(""); try { localStorage.removeItem(STORAGE_KEY); } catch {} } }} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, color: "var(--muted)", padding: "8px 20px", fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5 }}>Sıfırla</button>
+    </div>
+    <div style={{ textAlign: "center", padding: "8px 0 16px", fontSize: 10, color: "var(--muted)", letterSpacing: 0.5, fontWeight: 500 }}>{"~15dk gecikmeli · Yatırım tavsiyesi değildir"}</div>
+  </>);
+}
+ReactDOM.createRoot(document.getElementById("app")).render(<App />);
+</script>
+</body>
+</html>
