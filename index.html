@@ -185,12 +185,12 @@ function App() {
   const removeRow = (id) => setRows(r => r.filter(x => x.id !== id));
   const updateRow = (id, field, val) => setRows(r => r.map(x => x.id === id ? { ...x, [field]: val } : x));
 
-  const addSell = () => { setSells(s => [...s, { price: "", qty: "", id: nextId }]); setNextId(n => n + 1); };
+  const addSell = () => { setSells(s => [...s, { price: "", amount: "", id: nextId }]); setNextId(n => n + 1); };
   const removeSell = (id) => setSells(s => s.filter(x => x.id !== id));
   const updateSell = (id, field, val) => setSells(s => s.map(x => x.id === id ? { ...x, [field]: val } : x));
 
   const parsed = useMemo(() => rows.map(r => { const p = parseFloat(r.price.replace(",", ".")); const amt = parseFloat(r.amount.replace(",", ".")); return { ...r, p, amt, l: p > 0 && amt > 0 ? amt / p : 0 }; }).filter(r => r.p > 0 && r.l > 0), [rows]);
-  const parsedSells = useMemo(() => sells.map(s => { const p = parseFloat(s.price.replace(",", ".")); const q = parseFloat(s.qty.replace(",", ".")); return { ...s, p, q }; }).filter(s => s.p > 0 && s.q > 0), [sells]);
+  const parsedSells = useMemo(() => sells.map(s => { const p = parseFloat(s.price.replace(",", ".")); const amt = parseFloat(s.amount.replace(",", ".")); return { ...s, p, amt, q: p > 0 && amt > 0 ? amt / p : 0 }; }).filter(s => s.p > 0 && s.q > 0), [sells]);
   const cp = parseFloat((currentPrice || "").replace(",", "."));
   const stats = useMemo(() => {
     if (!parsed.length) return null;
@@ -242,16 +242,17 @@ function App() {
     {/* SATIŞLAR */}
     <div className="card" style={{ borderColor: stats?.overSold ? "rgba(255,82,82,0.3)" : "rgba(255,152,0,0.2)" }}>
       <div className="row-header" style={{ background: "rgba(255,152,0,0.06)", justifyContent: "space-between" }}><span>{"Satışlar"}</span>{stats && <span style={{ fontWeight: 700, color: "var(--text-sec)", textTransform: "none", letterSpacing: 0 }}>{"Mevcut: " + fmt(stats.totalBought, 2) + " ad"}</span>}</div>
-      <div className="row-header" style={{ paddingTop: 0 }}><span style={{ flex: "0 0 36px" }}></span><span style={{ flex: 1 }}>{"Satış Fiyatı ($)"}</span><span style={{ flex: 1 }}>Adet</span><span style={{ width: 30 }}></span></div>
+      <div className="row-header" style={{ paddingTop: 0 }}><span style={{ flex: "0 0 36px" }}></span><span style={{ flex: 1 }}>{"Satış Fiyatı ($)"}</span><span style={{ flex: 1 }}>{"Miktar ($)"}</span><span style={{ width: 30 }}></span></div>
       {sells.length === 0 && (<div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>{"Henüz satış yok"}</div>)}
       {sells.map((s, i) => {
         const sp = parseFloat(s.price.replace(",", "."));
-        const sq = parseFloat(s.qty.replace(",", "."));
-        const sellPnl = stats && sp > 0 && sq > 0 ? (sp - stats.avg) * Math.min(sq, stats.totalBought) : null;
+        const sa = parseFloat(s.amount.replace(",", "."));
+        const sq = sp > 0 && sa > 0 ? sa / sp : null;
+        const sellPnl = stats && sq ? (sp - stats.avg) * sq : null;
         const sellColor = sellPnl != null ? (sellPnl >= 0 ? "var(--green)" : "var(--red)") : "var(--muted)";
         return (
-        <div key={s.id} className="kademe-row"><span className="kademe-num" style={{ background: "rgba(255,152,0,0.12)", color: "#FF9800" }}>{"S" + (i + 1)}</span><div className="kademe-input-wrap"><input className="input input-sm" value={s.price} onChange={e => updateSell(s.id, "price", e.target.value)} placeholder="Fiyat" inputMode="decimal" />{sellPnl != null && <span className="kademe-pnl" style={{ color: sellColor }}>{(sellPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(sellPnl))}</span>}</div><div className="kademe-input-wrap"><input className="input input-sm" value={s.qty} onChange={e => updateSell(s.id, "qty", e.target.value)} placeholder="Adet" inputMode="decimal" /></div><button className="btn-remove" onClick={() => removeSell(s.id)}>&times;</button></div>); })}
-      {stats?.overSold && <div style={{ padding: "8px 16px", fontSize: 11, color: "var(--red)", background: "var(--red-soft)", fontWeight: 600 }}>{"⚠ Toplam satış (" + fmt(stats.rawSold, 2) + ") mevcut adedi (" + fmt(stats.totalBought, 2) + ") aşıyor — hesaplama mevcut adede göre yapıldı"}</div>}
+        <div key={s.id} className="kademe-row"><span className="kademe-num" style={{ background: "rgba(255,152,0,0.12)", color: "#FF9800" }}>{"S" + (i + 1)}</span><div className="kademe-input-wrap"><input className="input input-sm" value={s.price} onChange={e => updateSell(s.id, "price", e.target.value)} placeholder="Fiyat" inputMode="decimal" />{sellPnl != null && <span className="kademe-pnl" style={{ color: sellColor }}>{(sellPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(sellPnl))}</span>}</div><div className="kademe-input-wrap"><input className="input input-sm" value={s.amount} onChange={e => updateSell(s.id, "amount", e.target.value)} placeholder="1000" inputMode="decimal" />{sq != null && <span className="kademe-adet">{fmt(sq, 2) + " ad"}</span>}</div><button className="btn-remove" onClick={() => removeSell(s.id)}>&times;</button></div>); })}
+      {stats?.overSold && <div style={{ padding: "8px 16px", fontSize: 11, color: "var(--red)", background: "var(--red-soft)", fontWeight: 600 }}>{"⚠ Toplam satış (" + fmt(stats.rawSold, 2) + ") mevcut adedi (" + fmt(stats.totalBought, 2) + ") aşıyor"}</div>}
       <button className="btn-add" onClick={addSell} style={{ color: "#FF9800", background: "rgba(255,152,0,0.06)" }}>{"+ Satış Ekle"}</button>
     </div>
     {/* STATS */}
