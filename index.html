@@ -132,15 +132,15 @@ function App() {
   const [ticker, setTicker] = useState(saved.current?.ticker || "NVDA");
   const [currentPrice, setCurrentPrice] = useState(saved.current?.currentPrice || "");
   const [rows, setRows] = useState(saved.current?.rows || [{ price: "", amount: "", id: 1 }]);
+  const [sells, setSells] = useState(saved.current?.sells || []);
   const [nextId, setNextId] = useState(saved.current?.nextId || 2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastFetch, setLastFetch] = useState(saved.current?.lastFetch || null);
 
-  // Auto-save on every change
   useEffect(() => {
-    saveState({ ticker, currentPrice, rows, nextId, lastFetch });
-  }, [ticker, currentPrice, rows, nextId, lastFetch]);
+    saveState({ ticker, currentPrice, rows, sells, nextId, lastFetch });
+  }, [ticker, currentPrice, rows, sells, nextId, lastFetch]);
 
   const applyPrice = (price, name, change, changePct) => {
     setCurrentPrice(String(price));
@@ -185,12 +185,36 @@ function App() {
   const removeRow = (id) => setRows(r => r.filter(x => x.id !== id));
   const updateRow = (id, field, val) => setRows(r => r.map(x => x.id === id ? { ...x, [field]: val } : x));
 
+  const addSell = () => { setSells(s => [...s, { price: "", qty: "", id: nextId }]); setNextId(n => n + 1); };
+  const removeSell = (id) => setSells(s => s.filter(x => x.id !== id));
+  const updateSell = (id, field, val) => setSells(s => s.map(x => x.id === id ? { ...x, [field]: val } : x));
+
   const parsed = useMemo(() => rows.map(r => { const p = parseFloat(r.price.replace(",", ".")); const amt = parseFloat(r.amount.replace(",", ".")); return { ...r, p, amt, l: p > 0 && amt > 0 ? amt / p : 0 }; }).filter(r => r.p > 0 && r.l > 0), [rows]);
+  const parsedSells = useMemo(() => sells.map(s => { const p = parseFloat(s.price.replace(",", ".")); const q = parseFloat(s.qty.replace(",", ".")); return { ...s, p, q }; }).filter(s => s.p > 0 && s.q > 0), [sells]);
   const cp = parseFloat((currentPrice || "").replace(",", "."));
-  const stats = useMemo(() => { if (!parsed.length) return null; const tl = parsed.reduce((s, r) => s + r.l, 0); const tc = parsed.reduce((s, r) => s + r.amt, 0); const avg = tc / tl; const cv = cp > 0 ? tl * cp : null; const pnl = cv != null ? cv - tc : null; return { totalLot: tl, totalCost: tc, avg, curVal: cv, pnl, pnlPct: pnl != null ? (pnl / tc) * 100 : null }; }, [parsed, cp]);
-  const isProfit = stats && stats.pnl != null && stats.pnl >= 0;
-  const plColor = stats?.pnl != null ? (isProfit ? "var(--green)" : "var(--red)") : "var(--muted)";
-  const plBg = stats?.pnl != null ? (isProfit ? "var(--green-soft)" : "var(--red-soft)") : "transparent";
+  const stats = useMemo(() => {
+    if (!parsed.length) return null;
+    const totalBought = parsed.reduce((s, r) => s + r.l, 0);
+    const totalCost = parsed.reduce((s, r) => s + r.amt, 0);
+    const avg = totalCost / totalBought;
+    const rawSold = parsedSells.reduce((s, r) => s + r.q, 0);
+    const totalSold = Math.min(rawSold, totalBought);
+    const overSold = rawSold > totalBought;
+    // Pro-rate sells if total exceeds available
+    const sellScale = overSold ? totalBought / rawSold : 1;
+    const realizedPnl = parsedSells.reduce((s, r) => s + (r.p - avg) * r.q * sellScale, 0);
+    const realizedRev = parsedSells.reduce((s, r) => s + r.p * r.q * sellScale, 0);
+    const remaining = totalBought - totalSold;
+    const remainingCost = remaining * avg;
+    const curVal = cp > 0 ? remaining * cp : null;
+    const unrealizedPnl = curVal != null ? curVal - remainingCost : null;
+    const unrealizedPct = unrealizedPnl != null && remainingCost > 0 ? (unrealizedPnl / remainingCost) * 100 : null;
+    const totalPnl = unrealizedPnl != null ? realizedPnl + unrealizedPnl : null;
+    return { totalBought, totalCost, avg, totalSold, rawSold, overSold, realizedPnl, realizedRev, remaining, remainingCost, curVal, unrealizedPnl, unrealizedPct, totalPnl };
+  }, [parsed, parsedSells, cp]);
+  const isProfit = stats && stats.unrealizedPnl != null && stats.unrealizedPnl >= 0;
+  const plColor = stats?.unrealizedPnl != null ? (isProfit ? "var(--green)" : "var(--red)") : "var(--muted)";
+  const plBg = stats?.unrealizedPnl != null ? (isProfit ? "var(--green-soft)" : "var(--red-soft)") : "transparent";
   const chartData = useMemo(() => { if (!parsed.length) return null; const ps = parsed.map(r => r.p); if (cp > 0) ps.push(cp); if (stats) ps.push(stats.avg); const mn = Math.min(...ps), mx = Math.max(...ps), pd = (mx - mn) * 0.18 || mx * 0.05; return { min: mn - pd, max: mx + pd, range: mx - mn + 2 * pd }; }, [parsed, cp, stats]);
   const getY = (price) => chartData ? 100 - ((price - chartData.min) / chartData.range) * 100 : 0;
 
@@ -215,11 +239,40 @@ function App() {
         <div key={r.id} className="kademe-row"><span className="kademe-num">{i + 1}</span><div className="kademe-input-wrap"><input className="input input-sm" value={r.price} onChange={e => updateRow(r.id, "price", e.target.value)} placeholder="Fiyat" inputMode="decimal" />{rowPnl != null && <span className="kademe-pnl" style={{ color: rowColor }}>{pctFmt(rowPnl)}</span>}</div><div className="kademe-input-wrap"><input className="input input-sm" value={r.amount} onChange={e => updateRow(r.id, "amount", e.target.value)} placeholder="500" inputMode="decimal" />{ca != null && <span className="kademe-adet">{fmt(ca, 1)} ad</span>}</div><button className="btn-remove" onClick={() => removeRow(r.id)} disabled={rows.length <= 1}>&times;</button></div>); })}
       <button className="btn-add" onClick={addRow}>+ Kademe Ekle</button>
     </div>
-    {stats && (<div className="card card-pad slide-up"><div className="grid-2"><div><div className="stat-label">Ort. Maliyet</div><div className="stat-big">${fmt(stats.avg)}</div></div><div><div className="stat-label">Toplam Adet</div><div className="stat-big">{fmt(stats.totalLot, 2)}</div></div><div><div className="stat-label">Toplam Yatırım</div><div className="stat-med">${fmt(stats.totalCost)}</div></div>{stats.curVal != null && <div><div className="stat-label">Güncel Değer</div><div className="stat-med">${fmt(stats.curVal)}</div></div>}</div>{stats.pnl != null && (<div className="pnl-box" style={{ background: plBg }}><div><div className="stat-label">Kâr / Zarar</div><div className="pnl-amount" style={{ color: plColor }}>{stats.pnl >= 0 ? "+" : ""}${fmt(Math.abs(stats.pnl))}</div></div><div className="pnl-pct" style={{ color: plColor, background: isProfit ? "rgba(0,230,118,0.06)" : "rgba(255,82,82,0.06)" }}>{pctFmt(stats.pnlPct)}</div></div>)}</div>)}
+    {/* SATIŞLAR */}
+    <div className="card" style={{ borderColor: stats?.overSold ? "rgba(255,82,82,0.3)" : "rgba(255,152,0,0.2)" }}>
+      <div className="row-header" style={{ background: "rgba(255,152,0,0.06)", justifyContent: "space-between" }}><span>{"Satışlar"}</span>{stats && <span style={{ fontWeight: 700, color: "var(--text-sec)", textTransform: "none", letterSpacing: 0 }}>{"Mevcut: " + fmt(stats.totalBought, 2) + " ad"}</span>}</div>
+      <div className="row-header" style={{ paddingTop: 0 }}><span style={{ flex: "0 0 36px" }}></span><span style={{ flex: 1 }}>{"Satış Fiyatı ($)"}</span><span style={{ flex: 1 }}>Adet</span><span style={{ width: 30 }}></span></div>
+      {sells.length === 0 && (<div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>{"Henüz satış yok"}</div>)}
+      {sells.map((s, i) => {
+        const sp = parseFloat(s.price.replace(",", "."));
+        const sq = parseFloat(s.qty.replace(",", "."));
+        const sellPnl = stats && sp > 0 && sq > 0 ? (sp - stats.avg) * Math.min(sq, stats.totalBought) : null;
+        const sellColor = sellPnl != null ? (sellPnl >= 0 ? "var(--green)" : "var(--red)") : "var(--muted)";
+        return (
+        <div key={s.id} className="kademe-row"><span className="kademe-num" style={{ background: "rgba(255,152,0,0.12)", color: "#FF9800" }}>{"S" + (i + 1)}</span><div className="kademe-input-wrap"><input className="input input-sm" value={s.price} onChange={e => updateSell(s.id, "price", e.target.value)} placeholder="Fiyat" inputMode="decimal" />{sellPnl != null && <span className="kademe-pnl" style={{ color: sellColor }}>{(sellPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(sellPnl))}</span>}</div><div className="kademe-input-wrap"><input className="input input-sm" value={s.qty} onChange={e => updateSell(s.id, "qty", e.target.value)} placeholder="Adet" inputMode="decimal" /></div><button className="btn-remove" onClick={() => removeSell(s.id)}>&times;</button></div>); })}
+      {stats?.overSold && <div style={{ padding: "8px 16px", fontSize: 11, color: "var(--red)", background: "var(--red-soft)", fontWeight: 600 }}>{"⚠ Toplam satış (" + fmt(stats.rawSold, 2) + ") mevcut adedi (" + fmt(stats.totalBought, 2) + ") aşıyor — hesaplama mevcut adede göre yapıldı"}</div>}
+      <button className="btn-add" onClick={addSell} style={{ color: "#FF9800", background: "rgba(255,152,0,0.06)" }}>{"+ Satış Ekle"}</button>
+    </div>
+    {/* STATS */}
+    {stats && (<div className="card card-pad slide-up">
+      <div className="grid-2">
+        <div><div className="stat-label">Ort. Maliyet</div><div className="stat-big">${fmt(stats.avg)}</div></div>
+        <div><div className="stat-label">{"Kalan Adet"}</div><div className="stat-big">{fmt(stats.remaining, 2)}{stats.totalSold > 0 && <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>{"/ " + fmt(stats.totalBought, 2)}</span>}</div></div>
+        <div><div className="stat-label">{"Toplam Yatırım"}</div><div className="stat-med">${fmt(stats.totalCost)}</div></div>
+        {stats.curVal != null && <div><div className="stat-label">{"Kalan Değer"}</div><div className="stat-med">${fmt(stats.curVal)}</div></div>}
+      </div>
+      {/* Realized P&L */}
+      {stats.totalSold > 0 && (<div className="pnl-box" style={{ background: stats.realizedPnl >= 0 ? "var(--green-soft)" : "var(--red-soft)", marginTop: 14 }}><div><div className="stat-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>{"Realized K/Z"}<span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 4, background: "rgba(255,152,0,0.15)", color: "#FF9800", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{"Satıldı"}</span></div><div className="pnl-amount" style={{ color: stats.realizedPnl >= 0 ? "var(--green)" : "var(--red)" }}>{(stats.realizedPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(stats.realizedPnl))}</div></div><div style={{ textAlign: "right", fontSize: 12, color: "var(--muted)" }}>{fmt(stats.totalSold, 2) + " ad"}<br /><span style={{ fontSize: 11 }}>{"$" + fmt(stats.realizedRev) + " gelir"}</span></div></div>)}
+      {/* Unrealized P&L */}
+      {stats.unrealizedPnl != null && stats.remaining > 0 && (<div className="pnl-box" style={{ background: plBg, marginTop: stats.totalSold > 0 ? 8 : 18 }}><div><div className="stat-label">{stats.totalSold > 0 ? "Unrealized K/Z" : "Kâr / Zarar"}</div><div className="pnl-amount" style={{ color: plColor }}>{(stats.unrealizedPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(stats.unrealizedPnl))}</div></div><div className="pnl-pct" style={{ color: plColor, background: isProfit ? "rgba(0,230,118,0.06)" : "rgba(255,82,82,0.06)" }}>{pctFmt(stats.unrealizedPct)}</div></div>)}
+      {/* Total P&L */}
+      {stats.totalSold > 0 && stats.totalPnl != null && (<div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{"Toplam K/Z"}</span><span style={{ fontSize: 18, fontWeight: 900, color: stats.totalPnl >= 0 ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{(stats.totalPnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(stats.totalPnl))}</span></div>)}
+    </div>)}
     {chartData && parsed.length > 0 && (<div className="card card-pad"><div className="label" style={{ marginBottom: 14 }}>{"Alım Seviyeleri — " + ticker}</div><div className="chart-wrap">{[0,25,50,75,100].map(pctY => { const price = chartData.max - (pctY / 100) * chartData.range; return (<div key={pctY} className="chart-grid-line" style={{ top: pctY + "%" }}><span className="chart-grid-label">{fmt(price)}</span><div className="chart-grid-rule" /></div>); })}{cp > 0 && (<div style={{ position: "absolute", top: getY(cp) + "%", left: -4, right: 0, zIndex: 3 }}><div className="chart-cur-line" /><span className="chart-cur-label">${fmt(cp)}</span></div>)}{stats && (<div style={{ position: "absolute", top: getY(stats.avg) + "%", left: -4, right: 0, zIndex: 2 }}><div className="chart-avg-line" /><span className="chart-avg-label">{"ORT $" + fmt(stats.avg)}</span></div>)}{parsed.map(r => { const y = getY(r.p); const mxA = Math.max(...parsed.map(x => x.amt)); const barW = (r.amt / mxA) * 65 + 20; const rPnl = cp > 0 ? ((cp - r.p) / r.p) * 100 : null; const dc = rPnl != null ? (rPnl >= 0 ? "var(--green)" : "var(--red)") : "var(--accent)"; const dr = rPnl != null ? (rPnl >= 0 ? "#00E676" : "#FF5252") : "#9B7FFF"; return (<div key={r.id} className="buy-marker" style={{ top: y + "%" }}><div className="buy-dot" style={{ background: dc, boxShadow: "0 0 10px " + dr + "60" }} /><div className="buy-bar" style={{ width: barW + "%", background: "linear-gradient(90deg, " + dr + "50, " + dr + "08)" }} /><span className="buy-label">{"$" + fmt(r.amt, 0) + " → " + fmt(r.l, 1) + " ad"}</span></div>); })}</div><div className="legend"><span className="legend-item"><span style={{ width: 12, height: 2, background: "var(--accent)", display: "inline-block", borderRadius: 1 }} /> {"Güncel"}</span><span className="legend-item"><span style={{ width: 12, height: 2, display: "inline-block", backgroundImage: "repeating-linear-gradient(90deg, var(--muted) 0 3px, transparent 3px 6px)" }} /> Ortalama</span><span className="legend-item"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", display: "inline-block", boxShadow: "0 0 6px var(--green-glow)" }} /> {"Kârda"}</span><span className="legend-item"><span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--red)", display: "inline-block", boxShadow: "0 0 6px var(--red-glow)" }} /> Zararda</span></div></div>)}
     {stats && cp > 0 && parsed.length > 1 && (<div className="card slide-up"><div className="detail-header">Kademe Detay</div>{parsed.map(r => { const cost = r.amt, val = cp * r.l, pnl = val - cost, pnlP = (pnl / cost) * 100; const c = pnl >= 0 ? "var(--green)" : "var(--red)"; return (<div key={r.id} className="detail-row"><div><span style={{ fontSize: 13, fontWeight: 700 }}>{"$" + fmt(r.amt, 0)}</span><span style={{ fontSize: 12, color: "var(--text-sec)", marginLeft: 6 }}>{"@ $" + fmt(r.p)}</span><span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 6 }}>{"(" + fmt(r.l, 2) + " ad)"}</span></div><div style={{ textAlign: "right" }}><span style={{ fontSize: 13, fontWeight: 800, color: c, fontVariantNumeric: "tabular-nums" }}>{(pnl >= 0 ? "+" : "") + "$" + fmt(Math.abs(pnl))}</span><span style={{ fontSize: 11, fontWeight: 700, color: c, marginLeft: 6 }}>{pctFmt(pnlP)}</span></div></div>); })}</div>)}
     <div style={{ textAlign: "center", padding: "24px 0 8px" }}>
-      <button onClick={() => { if (confirm("Tüm kademeleri sıfırla?")) { setTicker("NVDA"); setCurrentPrice(""); setRows([{price:"",amount:"",id:1}]); setNextId(2); setLastFetch(null); setError(""); try { localStorage.removeItem(STORAGE_KEY); } catch {} } }} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, color: "var(--muted)", padding: "8px 20px", fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5 }}>Sıfırla</button>
+      <button onClick={() => { if (confirm("Tüm verileri sıfırla?")) { setTicker("NVDA"); setCurrentPrice(""); setRows([{price:"",amount:"",id:1}]); setSells([]); setNextId(2); setLastFetch(null); setError(""); try { localStorage.removeItem(STORAGE_KEY); } catch {} } }} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, color: "var(--muted)", padding: "8px 20px", fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5 }}>{"Sıfırla"}</button>
     </div>
     <div style={{ textAlign: "center", padding: "8px 0 16px", fontSize: 10, color: "var(--muted)", letterSpacing: 0.5, fontWeight: 500 }}>{"~15dk gecikmeli · Yatırım tavsiyesi değildir"}</div>
   </>);
